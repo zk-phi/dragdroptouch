@@ -152,11 +152,7 @@ var DefaultConfiguration = {
   dragScrollPercentage: 10,
   dragScrollSpeed: 10,
   dragThresholdPixels: 5,
-  forceListen: false,
-  isPressHoldMode: false,
-  pressHoldDelayMS: 400,
-  pressHoldMargin: 25,
-  pressHoldThresholdPixels: 0
+  forceListen: false
 };
 var DragDropTouch = class {
   _dragRoot;
@@ -171,7 +167,6 @@ var DragDropTouch = class {
   _img;
   _imgCustom;
   _imgOffset;
-  _pressHoldIntervalId;
   configuration;
   /**
    * Deal with shadow DOM elements.
@@ -265,12 +260,7 @@ var DragDropTouch = class {
               }
             }
           }, this.configuration.contextMenuDelayMS);
-          if (this.configuration.isPressHoldMode) {
-            this._pressHoldIntervalId = setTimeout(() => {
-              this._isDragEnabled = true;
-              this._touchmove(e);
-            }, this.configuration.pressHoldDelayMS);
-          } else if (!e.isTrusted) {
+          if (!e.isTrusted) {
             if (e.target !== this._lastTarget) {
               this._lastTarget = e.target;
             }
@@ -285,11 +275,7 @@ var DragDropTouch = class {
    * @returns
    */
   _touchmove(e) {
-    if (this._shouldCancelPressHoldMove(e)) {
-      this._reset();
-      return;
-    }
-    if (this._shouldHandleMove(e) || this._shouldHandlePressHoldMove(e)) {
+    if (this._shouldHandle(e)) {
       let target = this._getTarget(e);
       if (this._dispatchEvent(e, `mousemove`, target)) {
         this._lastTouch = e;
@@ -320,6 +306,9 @@ var DragDropTouch = class {
           const delta = this._getHotRegionDelta(e);
           globalThis.scrollBy(delta.x, delta.y);
         }
+      }
+      if (this._dragSource) {
+        e.preventDefault();
       }
     }
   }
@@ -365,35 +354,8 @@ var DragDropTouch = class {
    * @param e
    * @returns
    */
-  _shouldHandleMove(e) {
-    return !this.configuration.isPressHoldMode && this._shouldHandle(e);
-  }
-  /**
-   * ...docs go here...
-   * @param e
-   * @returns
-   */
-  _shouldHandlePressHoldMove(e) {
-    return this.configuration.isPressHoldMode && this._isDragEnabled && e && e.touches && e.touches.length;
-  }
-  /**
-   * ...docs go here...
-   * @param e
-   * @returns
-   */
-  _shouldCancelPressHoldMove(e) {
-    return this.configuration.isPressHoldMode && !this._isDragEnabled && this._getDelta(e) > this.configuration.pressHoldMargin;
-  }
-  /**
-   * ...docs go here...
-   * @param e
-   * @returns
-   */
   _shouldStartDragging(e) {
     let delta = this._getDelta(e);
-    if (this.configuration.isPressHoldMode) {
-      return delta >= this.configuration.pressHoldThresholdPixels;
-    }
     return delta > this.configuration.dragThresholdPixels;
   }
   /**
@@ -408,7 +370,6 @@ var DragDropTouch = class {
     this._isDragEnabled = false;
     this._isDropZone = false;
     this._dataTransfer = new DragDTO(this);
-    clearTimeout(this._pressHoldIntervalId);
   }
   /**
    * ...docs go here...
@@ -523,17 +484,6 @@ var DragDropTouch = class {
 };
 function enableDragDropTouch(dragRoot = document, dropRoot = document, options) {
   new DragDropTouch(dragRoot, dropRoot, options);
-}
-if (import.meta.url.includes(`?autoload`)) {
-  enableDragDropTouch(document, document, {
-    forceListen: true
-  });
-} else {
-  globalThis.DragDropTouch = {
-    enable: function(dragRoot = document, dropRoot = document, options) {
-      enableDragDropTouch(dragRoot, dropRoot, options);
-    }
-  };
 }
 export {
   enableDragDropTouch
