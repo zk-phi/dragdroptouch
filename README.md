@@ -1,65 +1,12 @@
-# DragDropTouch
+# DragDropTouch fork
 
 Polyfill that enables HTML5 drag drop support on mobile (touch) devices.
 
-The HTML5 specification includes support for drag and drop operations.
-Unfortunately, this specification is based on mouse events, rather than
-pointer events, and so most mobile browsers do not implement it. As such,
-applications that rely on HTML5 drag and drop have reduced functionality
-when running on mobile devices.
+## Differences from the original version
 
-The `DragDropTouch` class is a polyfill that translates touch events into
-standard HTML5 drag drop events. If you add the polyfill to your pages,
-drag and drop operations should work on mobile devices just like they
-do on the desktop.
-
-## Demo
-
-- [Click here to play with the demo](https://drag-drop-touch-js.github.io/dragdroptouch/demo/)
-
-This demo should work on desktop as well as on mobile devices, including
-iPads and Android tablets. To test this on a desktop, turn on "responsive
-design mode", which is both a button in the browser developer tools, as
-well as the hot-key <code>ctrl-shift-M</code> on Windows and Linux, or
-<code>cmd-shift-M</code> on Mac.
+- This version workarounds unwanted scrolling issue on iOS Safari, which occurs when `dragThresholdPixels` is set much larger
 
 ## How to "install"
-
-Add the `drag-drop-touch.esm.js` or `drag-drop-touch.esm.min.js` polyfill
-script to your page to enable drag and drop on devices with touch input:
-
-```html
-<script src="drag-drop-touch.esm.min.js?autoload" type="module"></script>
-```
-
-Note the `?autoload` query argument on the `src` URL: this loads the polyfill
-and immediately enables it so that you do not need to write any code yourself.
-If omitted, the library will instead set up a `window.DragDropTouch` object
-with a single function, `DragDropTouch.enable(dragRoot, dropRoot, options)`.
-All three arguments are optional. If left off, `DragDropTouch.enable()` simply
-polyfills the entire page. If you only want the polyfill to apply to specific
-elements though, you can call the `enable` function once for each set of
-elements that need polyfilling.
-
-Also note the `type="module"`, which is required. If left off, you'll probably
-get a browser error similar to:
-
-```
-Uncaught SyntaxError: import.meta may only appear in a module
-```
-
-## Using a CDN url
-
-```html
-<script
-  src="https://drag-drop-touch-js.github.io/dragdroptouch/dist/drag-drop-touch.esm.min.js"
-  type="module"
-></script>
-```
-
-## Using a JS ESM import
-
-As an ES module, you can also use this polyfill as an import in other scripts:
 
 ```js
 import { enableDragDropTouch } from "./drag-drop-touch.esm.min.js";
@@ -124,20 +71,9 @@ polyfill works:
 - **dragThresholdPixels** is the number of pixels that a touchmove needs to
   actually move before the polyfill switches to drag mode rather than click mode.
   This value is 5 by default
-- **isPressHoldMode** is a flag that tells the polyfill whether a a long-press
-  is required before polyfilling drag events. This value can be either `true` or
-  `false`, and is `false` by default.
 - **forceListen** is a flag that determines whether the polyfill should be
   enabled irrespective of whether the browser indicates that it's running on
   a touch-enabled device or not. This value is `true` by default.
-- **pressHoldDelayMS**: is the number of milliseconds the polyfill will wait
-  before it considers an active press to be a "long press". This value is 400
-  by default.
-- **pressHoldMargin** is the number of pixels we allow a touch event to drift
-  over the course of a long press start. This value is 25 by default.
-- **pressHoldThresholdPixels** is the drift in pixels that determines whether
-  a long press actually starts a long press, or starts a touch-drag instead.
-  This value is 0 by default.
 
 ## Thanks
 
