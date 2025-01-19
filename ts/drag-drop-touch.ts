@@ -277,6 +277,11 @@ class DragDropTouch {
           globalThis.scrollBy(delta.x, delta.y);
         }
       }
+
+      // touch-started but not dragging = waiting for contextmenu
+      if (this._dragSource) {
+        e.preventDefault();
+      }
     }
   }
 
