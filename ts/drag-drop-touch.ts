@@ -35,27 +35,10 @@ type DragDropTouchConfiguration = {
   // switches to drag mode rather than click mode?
   dragThresholdPixels: number;
 
-  // The flag that tells us whether a long-press should
-  // count as a user signal to "pick up an item" for
-  // drag and drop purposes.
-  isPressHoldMode: boolean;
-
   // A flag that determines whether the code should ignore
   // the navigator.maxTouchPoints value, which normally
   // tells us whether to expect touch events or not.
   forceListen: boolean;
-
-  // The number of milliseconds we'll wait before we
-  // consider an active press to be a "long press".
-  pressHoldDelayMS: number;
-
-  // The number of pixels we allow a touch event to
-  // drift over the course of a long press start.
-  pressHoldMargin: number;
-
-  // The drift in pixels that determines whether a
-  // long press starts a long press, or a touch-drag.
-  pressHoldThresholdPixels: number;
 };
 
 const DefaultConfiguration: DragDropTouchConfiguration = {
@@ -66,10 +49,6 @@ const DefaultConfiguration: DragDropTouchConfiguration = {
   dragScrollSpeed: 10,
   dragThresholdPixels: 5,
   forceListen: false,
-  isPressHoldMode: false,
-  pressHoldDelayMS: 400,
-  pressHoldMargin: 25,
-  pressHoldThresholdPixels: 0,
 };
 
 interface Point {
@@ -108,7 +87,6 @@ class DragDropTouch {
   private _img: HTMLElement | null;
   private _imgCustom: HTMLElement | null;
   private _imgOffset: Point;
-  private _pressHoldIntervalId?: ReturnType<typeof setTimeout> | undefined;
 
   private readonly configuration: DragDropTouchConfiguration;
 
@@ -228,23 +206,10 @@ class DragDropTouch {
             }
           }, this.configuration.contextMenuDelayMS);
 
-          if (this.configuration.isPressHoldMode) {
-            DEBUG: console.log(
-              `setting a press-hold timeout for ${this.configuration.pressHoldDelayMS}ms`,
-            );
-            this._pressHoldIntervalId = setTimeout(() => {
-              DEBUG: console.log(
-                `this._isDragEnabled = true, calling touchMove`,
-              );
-              this._isDragEnabled = true;
-              this._touchmove(e);
-            }, this.configuration.pressHoldDelayMS);
-          }
-
           // We need this in case we're dealing with simulated touch events,
           // in which case the touch start + touch end won't have automagically
           // been turned into click events by the browser.
-          else if (!e.isTrusted) {
+          if (!e.isTrusted) {
             if (e.target !== this._lastTarget) {
               DEBUG: console.log(`synthetic touch start: saving _lastTarget`);
               this._lastTarget = e.target;
@@ -263,13 +228,7 @@ class DragDropTouch {
   _touchmove(e: TouchEvent) {
     DEBUG: console.log(`touchmove`);
 
-    if (this._shouldCancelPressHoldMove(e)) {
-      DEBUG: console.log(`cancel press-hold move`);
-      this._reset();
-      return;
-    }
-
-    if (this._shouldHandleMove(e) || this._shouldHandlePressHoldMove(e)) {
+    if (this._shouldHandle(e)) {
       DEBUG: console.log(`handling touch move`);
 
       // see if target wants to handle move
@@ -379,61 +338,8 @@ class DragDropTouch {
    * @param e
    * @returns
    */
-  _shouldHandleMove(e: TouchEvent) {
-    return !this.configuration.isPressHoldMode && this._shouldHandle(e);
-  }
-
-  /**
-   * ...docs go here...
-   * @param e
-   * @returns
-   */
-  _shouldHandlePressHoldMove(e: TouchEvent) {
-    return (
-      this.configuration.isPressHoldMode &&
-      this._isDragEnabled &&
-      e &&
-      e.touches &&
-      e.touches.length
-    );
-  }
-
-  /**
-   * ...docs go here...
-   * @param e
-   * @returns
-   */
-  _shouldCancelPressHoldMove(e: TouchEvent) {
-    DEBUG: {
-      console.log({
-        isPressHoldMode: this.configuration.isPressHoldMode,
-        _isDragEnabled: this._isDragEnabled,
-        delta: this._getDelta(e),
-        pressHoldMargin: this.configuration.pressHoldMargin,
-      });
-    }
-    return (
-      this.configuration.isPressHoldMode &&
-      !this._isDragEnabled &&
-      this._getDelta(e) > this.configuration.pressHoldMargin
-    );
-  }
-
-  /**
-   * ...docs go here...
-   * @param e
-   * @returns
-   */
   _shouldStartDragging(e: TouchEvent) {
     let delta = this._getDelta(e);
-    if (this.configuration.isPressHoldMode) {
-      DEBUG: console.log(
-        this.configuration.isPressHoldMode,
-        delta,
-        this.configuration.pressHoldThresholdPixels,
-      );
-      return delta >= this.configuration.pressHoldThresholdPixels;
-    }
     return delta > this.configuration.dragThresholdPixels;
   }
 
@@ -449,7 +355,6 @@ class DragDropTouch {
     this._isDragEnabled = false;
     this._isDropZone = false;
     this._dataTransfer = new DragDTO(this);
-    clearTimeout(this._pressHoldIntervalId);
   }
 
   /**
@@ -602,28 +507,4 @@ export function enableDragDropTouch(
   options?: Partial<typeof DefaultConfiguration>,
 ) {
   new DragDropTouch(dragRoot, dropRoot, options);
-}
-
-// Take advantage of ESM's ability to know which URL it's being
-// loaded from, by automatically building the singleton class
-// instance if we're being loaded with ?autoload as part of the
-// import URL.
-if (import.meta.url.includes(`?autoload`)) {
-  enableDragDropTouch(document, document, {
-    forceListen: true,
-  });
-}
-
-// If we're not autoloading, expose DragDropTouch but not as the
-// class itself but as an object with an .enable() function.
-else {
-  globalThis.DragDropTouch = {
-    enable: function (
-      dragRoot: Document | Element = document,
-      dropRoot: Document | Element = document,
-      options?: Partial<typeof DefaultConfiguration>,
-    ): void {
-      enableDragDropTouch(dragRoot, dropRoot, options);
-    },
-  };
 }
